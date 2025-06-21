@@ -11,7 +11,40 @@
 </head>
 
 <body>
-    <div class="container">
+     <!-- Add Menu Toggle Button -->
+    <button class="menu-toggle" id="menuToggle">☰ Menu</button>
+
+    <!-- Add Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Add Side Menu -->
+    <nav class="side-menu" id="sideMenu">
+        <ul>
+            <li><a href="#" id="createQuizLink">Create a Quiz</a></li>
+            <li><a href="#" id="homeLink">Home</a></li>
+            <li><a href="#">My Quizzes</a></li>
+            <li><a href="#">Settings</a></li>
+        </ul>
+    </nav>
+    <main class="main-content">
+        <!-- Add Quiz Creation Form (initially hidden) -->
+        <form class="quiz-form" id="quizForm" style="display: none;">
+            <h2>Create a New Quiz</h2>
+            
+            <div class="form-group">
+                <label for="prompt">Quiz Prompt:</label>
+                <textarea 
+                    id="prompt" 
+                    name="prompt" 
+                    placeholder="Enter your quiz topic or prompt here..."
+                    required
+                ></textarea>
+            </div>
+            
+            <button type="submit" class="generate-btn">Generate Quiz</button>
+        </form>
+
+    <div id ="quizQuestions" class="container">
         <div class="header">
             <h1>🧠 Quiz Interface</h1>
             <div class="score">Score: <span id="score">0</span> / <span id="total">0</span></div>
@@ -52,7 +85,7 @@
             <div id="results" class="results" style="display: none;"></div>
         </div>
     </div>
-
+    </main>
   
 </body>
 

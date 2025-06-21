@@ -222,4 +222,76 @@
             const sampleData = await loadJson();
             document.getElementById('jsonData').value = JSON.stringify(sampleData, null, 2);
         };
+
+        // Side Menu Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Get DOM elements
+    const menuToggle = document.getElementById('menuToggle');
+    const sideMenu = document.getElementById('sideMenu');
+    const overlay = document.getElementById('overlay');
+    const createQuizLink = document.getElementById('createQuizLink');
+    const homeLink = document.getElementById('homeLink');
+    const quizForm = document.getElementById('quizForm');
+    const existingQuizContent = document.getElementById('quizQuestions');
+
+    // Toggle side menu
+    function toggleMenu() {
+        sideMenu.classList.toggle('active');
+        overlay.classList.toggle('active');
+    }
+
+    // Close menu
+    function closeMenu() {
+        sideMenu.classList.remove('active');
+        overlay.classList.remove('active');
+    }
+
+    // Show quiz form
+    function showQuizForm() {
+        quizForm.style.display = 'block';
+        existingQuizContent.style.display = 'none';
+        closeMenu();
+    }
+
+    // Show home/existing content
+    function showHome() {
+        quizForm.style.display = 'none';
+        existingQuizContent.style.display = 'block';
+        closeMenu();
+    }
+
+    // Event listeners
+    if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
+    if (overlay) overlay.addEventListener('click', closeMenu);
+    if (createQuizLink) {
+        createQuizLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showQuizForm();
+        });
+    }
+    if (homeLink) {
+        homeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showHome();
+        });
+    }
+
+    // Handle quiz form submission
+    if (quizForm) {
+        quizForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const prompt = document.getElementById('prompt').value;
+            
+            if (prompt.trim()) {
+                console.log('Quiz prompt:', prompt);
+                // Add your quiz generation logic here
+                alert('Quiz generation started with prompt: ' + prompt);
+            } else {
+                alert('Please enter a prompt for your quiz.');
+            }
+        });
+    }
+});
+
+
     
