@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General knowledge Quiz Interface</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .score {
+            font-size: 1.2em;
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+
+        .question-card {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .question-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .question {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .options {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.1em;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .option.correct {
+            border-color: #38a169;
+            background: #38a169;
+            color: white;
+        }
+
+        .option.incorrect {
+            border-color: #e53e3e;
+            background: #e53e3e;
+            color: white;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            min-width: 120px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .results {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border-radius: 15px;
+        }
+
+        .json-input {
+            margin-bottom: 20px;
+        }
+
+        .json-input textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            resize: vertical;
+        }
+
+        .json-input button {
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Quiz Interface</h1>
+            <div class="score">Score: <span id="score">0</span> / <span id="total">0</span></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+        </div>
+
+        <div class="json-input" id="jsonInput">
+            <h3>Load Quiz Data (JSON Format):</h3>
+            <textarea id="jsonData" placeholder='[
+  {
+    "question": "What is the capital of France?",
+    "options": ["London", "Berlin", "Paris", "Madrid"],
+    "correct": 2
+  },
+  {
+    "question": "Which planet is closest to the Sun?",
+    "options": ["Venus", "Mercury", "Earth", "Mars"],
+    "correct": 1
+  }
+]'></textarea>
+            <button onclick="loadQuiz()">Load Quiz</button>
+        </div>
+
+        <div id="quizContainer" style="display: none;">
+            <div class="question-card">
+                <div class="question" id="questionText"></div>
+                <div class="options" id="optionsContainer"></div>
+            </div>
+
+            <div class="buttons">
+                <button id="submitBtn" onclick="submitAnswer()" disabled>Submit Answer</button>
+                <button id="nextBtn" onclick="nextQuestion()" style="display: none;">Next Question</button>
+                <button id="restartBtn" onclick="restartQuiz()" style="display: none;">Restart Quiz</button>
+            </div>
+
+            <div id="results" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let quizData = [];
+        let currentQuestion = 0;
+        let score = 0;
+        let selectedOption = -1;
+        let answered = false;
+        let userAnswers = []; // Track all user answers
+
+        // AWS API Gateway endpoint - UPDATE THIS WITH YOUR ACTUAL ENDPOINT
+        const API_ENDPOINT = 'https://your-api-gateway-url.amazonaws.com/prod/save-results';
+
+        function loadQuiz() {
+            try {
+                const jsonText = document.getElementById('jsonData').value;
+                quizData = JSON.parse(jsonText);
+
+                if (!Array.isArray(quizData) || quizData.length === 0) {
+                    alert('Please provide a valid array of questions');
+                    return;
+                }
+
+                // Validate question format
+                for (let q of quizData) {
+                    if (!q.question || !q.options || !Array.isArray(q.options) || typeof q.correct !== 'number') {
+                        alert('Invalid question format. Each question needs: question, options (array), and correct (number)');
+                        return;
+                    }
+                }
+
+                document.getElementById('jsonInput').style.display = 'none';
+                document.getElementById('quizContainer').style.display = 'block';
+
+                currentQuestion = 0;
+                score = 0;
+                userAnswers = []; // Reset answers array
+                updateScore();
+                showQuestion();
+            } catch (e) {
+                alert('Invalid JSON format. Please check your data.');
+            }
+        }
+
+        function showQuestion() {
+            if (currentQuestion >= quizData.length) {
+                showFinalResults();
+                return;
+            }
+
+            const question = quizData[currentQuestion];
+            document.getElementById('questionText').textContent = `${currentQuestion + 1}. ${question.question}`;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.textContent = option;
+                optionElement.onclick = () => selectOption(index);
+                optionElement.setAttribute('data-index', index);
+                optionsContainer.appendChild(optionElement);
+            });
+
+            selectedOption = -1;
+            answered = false;
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'inline-block';
+
+            updateProgress();
+        }
+
+        function selectOption(index) {
+            if (answered) return;
+
+            selectedOption = index;
+
+            // Remove previous selection
+            document.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+
+            // Add selection to clicked option
+            document.querySelector(`[data-index="${index}"]`).classList.add('selected');
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function submitAnswer() {
+            if (selectedOption === -1 || answered) return;
+
+            answered = true;
+            const question = quizData[currentQuestion];
+            const correctIndex = question.correct;
+
+            // Store user answer
+            userAnswers.push({
+                questionIndex: currentQuestion,
+                question: question.question,
+                selectedOption: selectedOption,
+                selectedAnswer: question.options[selectedOption],
+                correctOption: correctIndex,
+                correctAnswer: question.options[correctIndex],
+                isCorrect: selectedOption === correctIndex
+            });
+
+            // Show correct and incorrect answers
+            document.querySelectorAll('.option').forEach((opt, index) => {
+                opt.style.pointerEvents = 'none';
+                if (index === correctIndex) {
+                    opt.classList.add('correct');
+                } else if (index === selectedOption && index !== correctIndex) {
+                    opt.classList.add('incorrect');
+                }
+            });
+
+            // Update score
+            if (selectedOption === correctIndex) {
+                score++;
+                updateScore();
+            }
+
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            showQuestion();
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('total').textContent = quizData.length;
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestion + 1) / quizData.length) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+        }
+
+        async function showFinalResults() {
+            const percentage = Math.round((score / quizData.length) * 100);
+            let message = `Quiz Complete! 🎉<br>Final Score: ${score} / ${quizData.length} (${percentage}%)`;
+
+            if (percentage >= 90) message += '<br>Excellent work! 🏆';
+            else if (percentage >= 70) message += '<br>Great job! 👏';
+            else if (percentage >= 50) message += '<br>Good effort! 👍';
+            else message += '<br>Keep practicing! 💪';
+
+            // Save results to AWS DynamoDB
+            try {
+                await saveQuizResults();
+                message += '<br><small>✅ Results saved to database</small>';
+            } catch (error) {
+                console.error('Failed to save results:', error);
+                message += '<br><small>⚠️ Failed to save results</small>';
+            }
+
+            document.getElementById('results').innerHTML = message;
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('restartBtn').style.display = 'inline-block';
+        }
+
+        async function saveQuizResults() {
+            const userId = prompt("Enter your user ID (optional):") || 'anonymous';
+
+            const results = {
+                userId: userId,
+                score: score,
+                total: quizData.length,
+                answers: userAnswers,
+                quizData: quizData, // Optional: save questions too
+                timestamp: new Date().toISOString()
+            };
+
+            const response = await fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(results)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Results saved:', data);
+            return data;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            selectedOption = -1;
+            answered = false;
+            userAnswers = []; // Reset answers
+
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('restartBtn').style.display = 'none';
+
+            updateScore();
+            showQuestion();
+        }
+
+        // Async/await version
+        async function loadJson() {
+            try {
+                const response = await fetch('/quiz.json');
+                const data = await response.json();
+                console.log(data);
+                return data;
+            } catch (error) {
+                console.error('Error loading JSON:', error);
+            }
+        }
+
+        // Load sample data on page load
+        window.onload = async function () {
+            const sampleData = await loadJson();
+            document.getElementById('jsonData').value = JSON.stringify(sampleData, null, 2);
+        };
+    </script>
+</body>
+
+</html>
