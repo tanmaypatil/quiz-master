@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General knowledge Quiz Interface</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js"></script>
+    
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Quiz Interface</h1>
+            <div class="score">Score: <span id="score">0</span> / <span id="total">0</span></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+        </div>
+
+        <div class="json-input" id="jsonInput">
+            <h3>Load Quiz Data (JSON Format):</h3>
+            <textarea id="jsonData" placeholder='[
+  {
+    "question": "What is the capital of France?",
+    "options": ["London", "Berlin", "Paris", "Madrid"],
+    "correct": 2
+  },
+  {
+    "question": "Which planet is closest to the Sun?",
+    "options": ["Venus", "Mercury", "Earth", "Mars"],
+    "correct": 1
+  }
+]'></textarea>
+            <button onclick="loadQuiz()">Load Quiz</button>
+        </div>
+
+        <div id="quizContainer" style="display: none;">
+            <div class="question-card">
+                <div class="question" id="questionText"></div>
+                <div class="options" id="optionsContainer"></div>
+            </div>
+
+            <div class="buttons">
+                <button id="submitBtn" onclick="submitAnswer()" disabled>Submit Answer</button>
+                <button id="nextBtn" onclick="nextQuestion()" style="display: none;">Next Question</button>
+                <button id="restartBtn" onclick="restartQuiz()" style="display: none;">Restart Quiz</button>
+            </div>
+
+            <div id="results" class="results" style="display: none;"></div>
+        </div>
+    </div>
+
+  
+</body>
+
+</html>
