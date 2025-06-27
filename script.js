@@ -1,278 +1,393 @@
-  
-        let quizData = [];
-        let currentQuestion = 0;
-        let score = 0;
-        let selectedOption = -1;
-        let answered = false;
-        let userAnswers = []; // Track all user answers
+// Move all the quiz logic here (keeping it the same)
+let quizData = [];
+let currentQuestion = 0;
+let score = 0;
+let selectedOption = -1;
+let answered = false;
+let userAnswers = [];
 
-        // AWS API Gateway endpoint - UPDATE THIS WITH YOUR ACTUAL ENDPOINT
-        const API_ENDPOINT = 'https://your-api-gateway-url.amazonaws.com/prod/save-results';
+const API_ENDPOINT = 'https://your-api-gateway-url.amazonaws.com/prod/save-results';
 
-        function loadQuiz() {
-            try {
-                const jsonText = document.getElementById('jsonData').value;
-                quizData = JSON.parse(jsonText);
+function loadQuizInternal() {
+    try {
+        const jsonText = document.getElementById('jsonData').value;
+        quizData = JSON.parse(jsonText);
 
-                if (!Array.isArray(quizData) || quizData.length === 0) {
-                    alert('Please provide a valid array of questions');
-                    return;
-                }
-
-                // Validate question format
-                for (let q of quizData) {
-                    if (!q.question || !q.options || !Array.isArray(q.options) || typeof q.correct !== 'number') {
-                        alert('Invalid question format. Each question needs: question, options (array), and correct (number)');
-                        return;
-                    }
-                }
-
-                document.getElementById('jsonInput').style.display = 'none';
-                document.getElementById('quizContainer').style.display = 'block';
-
-                currentQuestion = 0;
-                score = 0;
-                userAnswers = []; // Reset answers array
-                updateScore();
-                showQuestion();
-            } catch (e) {
-                alert('Invalid JSON format. Please check your data.');
-            }
+        if (!Array.isArray(quizData) || quizData.length === 0) {
+            alert('Please provide a valid array of questions');
+            return;
         }
 
-        function showQuestion() {
-            if (currentQuestion >= quizData.length) {
-                showFinalResults();
+        for (let q of quizData) {
+            if (!q.question || !q.options || !Array.isArray(q.options) || typeof q.correct !== 'number') {
+                alert('Invalid question format. Each question needs: question, options (array), and correct (number)');
                 return;
             }
-
-            const question = quizData[currentQuestion];
-            document.getElementById('questionText').textContent = `${currentQuestion + 1}. ${question.question}`;
-
-            const optionsContainer = document.getElementById('optionsContainer');
-            optionsContainer.innerHTML = '';
-
-            question.options.forEach((option, index) => {
-                const optionElement = document.createElement('div');
-                optionElement.className = 'option';
-                optionElement.textContent = option;
-                optionElement.onclick = () => selectOption(index);
-                optionElement.setAttribute('data-index', index);
-                optionsContainer.appendChild(optionElement);
-            });
-
-            selectedOption = -1;
-            answered = false;
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('nextBtn').style.display = 'none';
-            document.getElementById('submitBtn').style.display = 'inline-block';
-
-            updateProgress();
         }
 
-        function selectOption(index) {
-            if (answered) return;
+        document.getElementById('jsonInput').style.display = 'none';
+        document.getElementById('quizContainer').style.display = 'block';
 
-            selectedOption = index;
+        currentQuestion = 0;
+        score = 0;
+        userAnswers = [];
+        updateScore();
+        showQuestion();
+    } catch (e) {
+        alert('Invalid JSON format. Please check your data.');
+    }
+}
 
-            // Remove previous selection
-            document.querySelectorAll('.option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
+function showQuestion() {
+    if (currentQuestion >= quizData.length) {
+        showFinalResults();
+        return;
+    }
 
-            // Add selection to clicked option
-            document.querySelector(`[data-index="${index}"]`).classList.add('selected');
-            document.getElementById('submitBtn').disabled = false;
+    const question = quizData[currentQuestion];
+    document.getElementById('questionText').textContent = `${currentQuestion + 1}. ${question.question}`;
+
+    const optionsContainer = document.getElementById('optionsContainer');
+    optionsContainer.innerHTML = '';
+
+    question.options.forEach((option, index) => {
+        const optionElement = document.createElement('div');
+        optionElement.className = 'option';
+        optionElement.textContent = option;
+        optionElement.onclick = () => selectOption(index);
+        optionElement.setAttribute('data-index', index);
+        optionsContainer.appendChild(optionElement);
+    });
+
+    selectedOption = -1;
+    answered = false;
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('submitBtn').style.display = 'inline-block';
+
+    updateProgress();
+}
+
+function selectOption(index) {
+    if (answered) return;
+
+    selectedOption = index;
+
+    document.querySelectorAll('.option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+
+    document.querySelector(`[data-index="${index}"]`).classList.add('selected');
+    document.getElementById('submitBtn').disabled = false;
+}
+
+function submitAnswerInternal() {
+    if (selectedOption === -1 || answered) return;
+
+    answered = true;
+    const question = quizData[currentQuestion];
+    const correctIndex = question.correct;
+
+    userAnswers.push({
+        questionIndex: currentQuestion,
+        question: question.question,
+        selectedOption: selectedOption,
+        selectedAnswer: question.options[selectedOption],
+        correctOption: correctIndex,
+        correctAnswer: question.options[correctIndex],
+        isCorrect: selectedOption === correctIndex
+    });
+
+    document.querySelectorAll('.option').forEach((opt, index) => {
+        opt.style.pointerEvents = 'none';
+        if (index === correctIndex) {
+            opt.classList.add('correct');
+        } else if (index === selectedOption && index !== correctIndex) {
+            opt.classList.add('incorrect');
         }
+    });
 
-        function submitAnswer() {
-            if (selectedOption === -1 || answered) return;
+    if (selectedOption === correctIndex) {
+        score++;
+        updateScore();
+    }
 
-            answered = true;
-            const question = quizData[currentQuestion];
-            const correctIndex = question.correct;
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'inline-block';
+}
 
-            // Store user answer
-            userAnswers.push({
-                questionIndex: currentQuestion,
-                question: question.question,
-                selectedOption: selectedOption,
-                selectedAnswer: question.options[selectedOption],
-                correctOption: correctIndex,
-                correctAnswer: question.options[correctIndex],
-                isCorrect: selectedOption === correctIndex
-            });
+function nextQuestionInternal() {
+    currentQuestion++;
+    showQuestion();
+}
 
-            // Show correct and incorrect answers
-            document.querySelectorAll('.option').forEach((opt, index) => {
-                opt.style.pointerEvents = 'none';
-                if (index === correctIndex) {
-                    opt.classList.add('correct');
-                } else if (index === selectedOption && index !== correctIndex) {
-                    opt.classList.add('incorrect');
-                }
-            });
+function updateScore() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('total').textContent = quizData.length;
+}
 
-            // Update score
-            if (selectedOption === correctIndex) {
-                score++;
-                updateScore();
-            }
+function updateProgress() {
+    const progress = ((currentQuestion + 1) / quizData.length) * 100;
+    document.getElementById('progress').style.width = progress + '%';
+}
 
-            document.getElementById('submitBtn').style.display = 'none';
-            document.getElementById('nextBtn').style.display = 'inline-block';
-        }
+async function showFinalResults() {
+    const percentage = Math.round((score / quizData.length) * 100);
+    let message = `Quiz Complete! 🎉<br>Final Score: ${score} / ${quizData.length} (${percentage}%)`;
 
-        function nextQuestion() {
-            currentQuestion++;
-            showQuestion();
-        }
+    if (percentage >= 90) message += '<br>Excellent work! 🏆';
+    else if (percentage >= 70) message += '<br>Great job! 👏';
+    else if (percentage >= 50) message += '<br>Good effort! 👍';
+    else message += '<br>Keep practicing! 💪';
 
-        function updateScore() {
-            document.getElementById('score').textContent = score;
-            document.getElementById('total').textContent = quizData.length;
-        }
+    try {
+        await saveQuizResults();
+        message += '<br><small>✅ Results saved to database</small>';
+    } catch (error) {
+        console.error('Failed to save results:', error);
+        message += '<br><small>⚠️ Failed to save results</small>';
+    }
 
-        function updateProgress() {
-            const progress = ((currentQuestion + 1) / quizData.length) * 100;
-            document.getElementById('progress').style.width = progress + '%';
-        }
+    document.getElementById('results').innerHTML = message;
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('restartBtn').style.display = 'inline-block';
+}
 
-        async function showFinalResults() {
-            const percentage = Math.round((score / quizData.length) * 100);
-            let message = `Quiz Complete! 🎉<br>Final Score: ${score} / ${quizData.length} (${percentage}%)`;
+async function saveQuizResults() {
+    const userId = prompt("Enter your user ID (optional):") || 'anonymous';
 
-            if (percentage >= 90) message += '<br>Excellent work! 🏆';
-            else if (percentage >= 70) message += '<br>Great job! 👏';
-            else if (percentage >= 50) message += '<br>Good effort! 👍';
-            else message += '<br>Keep practicing! 💪';
+    const results = {
+        userId: userId,
+        score: score,
+        total: quizData.length,
+        answers: userAnswers,
+        quizData: quizData,
+        timestamp: new Date().toISOString()
+    };
 
-            // Save results to AWS DynamoDB
-            try {
-                await saveQuizResults();
-                message += '<br><small>✅ Results saved to database</small>';
-            } catch (error) {
-                console.error('Failed to save results:', error);
-                message += '<br><small>⚠️ Failed to save results</small>';
-            }
+    const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(results)
+    });
 
-            document.getElementById('results').innerHTML = message;
-            document.getElementById('results').style.display = 'block';
-            document.getElementById('nextBtn').style.display = 'none';
-            document.getElementById('restartBtn').style.display = 'inline-block';
-        }
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-        async function saveQuizResults() {
-            const userId = prompt("Enter your user ID (optional):") || 'anonymous';
+    const data = await response.json();
+    console.log('Results saved:', data);
+    return data;
+}
 
-            const results = {
-                userId: userId,
-                score: score,
-                total: quizData.length,
-                answers: userAnswers,
-                quizData: quizData, // Optional: save questions too
-                timestamp: new Date().toISOString()
-            };
+function restartQuiz() {
+    currentQuestion = 0;
+    score = 0;
+    selectedOption = -1;
+    answered = false;
+    userAnswers = [];
 
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(results)
-            });
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('restartBtn').style.display = 'none';
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+    updateScore();
+    showQuestion();
+}
 
-            const data = await response.json();
-            console.log('Results saved:', data);
-            return data;
-        }
+async function loadJson() {
+    try {
+        const response = await fetch('/quiz.json');
+        const data = await response.json();
+        console.log(data);
+        return data;
+    } catch (error) {
+        console.error('Error loading JSON:', error);
+    }
+}
 
-        function restartQuiz() {
-            currentQuestion = 0;
-            score = 0;
-            selectedOption = -1;
-            answered = false;
-            userAnswers = []; // Reset answers
+window.onload = async function () {
+    const sampleData = await loadJson();
+    if (document.getElementById('jsonData')) {
+        document.getElementById('jsonData').value = JSON.stringify(sampleData, null, 2);
+    }
+};
 
-            document.getElementById('results').style.display = 'none';
-            document.getElementById('restartBtn').style.display = 'none';
-
-            updateScore();
-            showQuestion();
-        }
-
-        // Async/await version
-        async function loadJson() {
-            try {
-                const response = await fetch('/quiz.json');
-                const data = await response.json();
-                console.log(data);
-                return data;
-            } catch (error) {
-                console.error('Error loading JSON:', error);
-            }
-        }
-
-        // Load sample data on page load
-        window.onload = async function () {
-            const sampleData = await loadJson();
-            document.getElementById('jsonData').value = JSON.stringify(sampleData, null, 2);
+// AuthManager class definition
+class AuthManager {
+    constructor() {
+        this.isAuthenticated = false;
+        this.users = {
+            'admin': 'password123',
+            'user': 'quiz123',
+            'test': 'test123'
         };
+    }
 
-        // Side Menu Functionality
+    init() {
+        // Check if user is already logged in
+        const savedAuth = sessionStorage.getItem('quizAuth');
+        if (savedAuth === 'true') {
+            this.isAuthenticated = true;
+            this.showQuizApp();
+        } else {
+            this.showLoginPage();
+        }
+
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        const loginForm = document.getElementById('loginForm');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
+            });
+        }
+
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                this.handleLogout();
+            });
+        }
+    }
+
+    handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('loginError');
+
+        console.log('Attempting login with:', username, password);
+
+        if (this.validateCredentials(username, password)) {
+            this.isAuthenticated = true;
+            sessionStorage.setItem('quizAuth', 'true');
+            sessionStorage.setItem('quizUser', username);
+            this.showQuizApp();
+            this.clearLoginForm();
+            if (errorDiv) errorDiv.style.display = 'none';
+        } else {
+            if (errorDiv) {
+                errorDiv.textContent = 'Invalid username or password';
+                errorDiv.style.display = 'block';
+            }
+        }
+    }
+
+    handleLogout() {
+        this.isAuthenticated = false;
+        sessionStorage.removeItem('quizAuth');
+        sessionStorage.removeItem('quizUser');
+        this.showLoginPage();
+        this.clearLoginForm();
+    }
+
+    validateCredentials(username, password) {
+        return this.users[username] && this.users[username] === password;
+    }
+
+    showLoginPage() {
+        const loginPage = document.getElementById('loginPage');
+        const quizApp = document.getElementById('quizApp');
+        
+        if (loginPage) loginPage.style.display = 'block';
+        if (quizApp) quizApp.style.display = 'none';
+    }
+
+    showQuizApp() {
+        const loginPage = document.getElementById('loginPage');
+        const quizApp = document.getElementById('quizApp');
+        
+        if (loginPage) loginPage.style.display = 'none';
+        if (quizApp) quizApp.style.display = 'block';
+    }
+
+    clearLoginForm() {
+        const username = document.getElementById('username');
+        const password = document.getElementById('password');
+        
+        if (username) username.value = '';
+        if (password) password.value = '';
+    }
+
+    checkAuth() {
+        return this.isAuthenticated;
+    }
+}
+
+// Global variable to hold the auth manager instance
+let authManager;
+
+// Enhanced navigation with auth check
+function navigateWithAuth(callback) {
+    if (authManager && authManager.checkAuth()) {
+        callback();
+    } else {
+        alert('Please log in to access this feature');
+        if (authManager) {
+            authManager.showLoginPage();
+        }
+    }
+}
+
+// Wait for DOM to be ready - THIS IS WHERE WE INITIALIZE EVERYTHING
 document.addEventListener('DOMContentLoaded', function() {
-    // Get DOM elements
+    // Initialize authentication manager AFTER DOM is loaded
+    authManager = new AuthManager();
+    authManager.init();
+
+    // Menu toggle functionality
     const menuToggle = document.getElementById('menuToggle');
     const sideMenu = document.getElementById('sideMenu');
     const overlay = document.getElementById('overlay');
+
+    if (menuToggle && sideMenu && overlay) {
+        menuToggle.addEventListener('click', function() {
+            navigateWithAuth(() => {
+                console.log('Menu toggle clicked');
+                sideMenu.classList.toggle('active');
+                overlay.style.display = sideMenu.classList.contains('active') ? 'block' : 'none';
+            });
+        });
+
+        overlay.addEventListener('click', function() {
+            sideMenu.classList.remove('active');
+            overlay.style.display = 'none';
+        });
+    }
+
+    // Navigation links with auth protection
     const createQuizLink = document.getElementById('createQuizLink');
     const homeLink = document.getElementById('homeLink');
     const quizForm = document.getElementById('quizForm');
-    const existingQuizContent = document.getElementById('quizQuestions');
+    const quizQuestions = document.getElementById('quizQuestions');
 
-    // Toggle side menu
-    function toggleMenu() {
-        sideMenu.classList.toggle('active');
-        overlay.classList.toggle('active');
-    }
-
-    // Close menu
-    function closeMenu() {
-        sideMenu.classList.remove('active');
-        overlay.classList.remove('active');
-    }
-
-    // Show quiz form
-    function showQuizForm() {
-        quizForm.style.display = 'block';
-        existingQuizContent.style.display = 'none';
-        closeMenu();
-    }
-
-    // Show home/existing content
-    function showHome() {
-        quizForm.style.display = 'none';
-        existingQuizContent.style.display = 'block';
-        closeMenu();
-    }
-
-    // Event listeners
-    if (menuToggle) menuToggle.addEventListener('click', toggleMenu);
-    if (overlay) overlay.addEventListener('click', closeMenu);
     if (createQuizLink) {
-        createQuizLink.addEventListener('click', (e) => {
+        createQuizLink.addEventListener('click', function(e) {
             e.preventDefault();
-            showQuizForm();
+            navigateWithAuth(() => {
+                if (quizForm) quizForm.style.display = 'block';
+                if (quizQuestions) quizQuestions.style.display = 'none';
+                if (sideMenu) sideMenu.classList.remove('open');
+                if (overlay) overlay.style.display = 'none';
+            });
         });
     }
+
     if (homeLink) {
-        homeLink.addEventListener('click', (e) => {
+        homeLink.addEventListener('click', function(e) {
             e.preventDefault();
-            showHome();
+            navigateWithAuth(() => {
+                if (quizForm) quizForm.style.display = 'none';
+                if (quizQuestions) quizQuestions.style.display = 'block';
+                if (sideMenu) sideMenu.classList.remove('open');
+                if (overlay) overlay.style.display = 'none';
+            });
         });
     }
 
@@ -280,18 +395,50 @@ document.addEventListener('DOMContentLoaded', function() {
     if (quizForm) {
         quizForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const prompt = document.getElementById('prompt').value;
-            
-            if (prompt.trim()) {
-                console.log('Quiz prompt:', prompt);
-                // Add your quiz generation logic here
-                alert('Quiz generation started with prompt: ' + prompt);
-            } else {
-                alert('Please enter a prompt for your quiz.');
+            const promptInput = document.getElementById('prompt');
+            if (promptInput) {
+                const prompt = promptInput.value;
+                if (prompt.trim()) {
+                    console.log('Quiz prompt:', prompt);
+                    alert('Quiz generation started with prompt: ' + prompt);
+                } else {
+                    alert('Please enter a prompt for your quiz.');
+                }
             }
         });
     }
 });
 
+// Override existing functions to include auth checks
+const originalFunctions = {
+    loadQuiz: window.loadQuiz,
+    submitAnswer: window.submitAnswer,
+    nextQuestion: window.nextQuestion,
+    restartQuiz: window.restartQuiz
+};
 
-    
+window.loadQuiz = function() {
+    if (authManager && authManager.checkAuth()) {
+        loadQuizInternal();
+    } else {
+        alert('Please log in to load a quiz');
+    }
+};
+
+window.submitAnswer = function() {
+    if (authManager && authManager.checkAuth()) {
+        submitAnswerInternal();
+    }
+};
+
+window.nextQuestion = function() {
+    if (authManager && authManager.checkAuth()) {
+        nextQuestionInternal();
+    }
+};
+
+window.restartQuiz = function() {
+    if (authManager && authManager.checkAuth()) {
+        restartQuiz();
+    }
+};
