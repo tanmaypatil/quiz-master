@@ -460,13 +460,13 @@ window.restartQuiz = function() {
 async function callBackendAPI(url, username, password, promptText) {
   // Create basic auth header
   const credentials = btoa(`${username}:${password}`);
-  
+  /*   'Authorization': `Basic ${credentials}` */
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
-        //'Authorization': `Basic ${credentials}`
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${credentials}`
       },
       body: JSON.stringify({
         prompt: promptText
