@@ -221,7 +221,7 @@ class AuthManager {
         this.isAuthenticated = false;
         this.users = {
             'admin': 'password123',
-            'user': 'quiz123',
+            'aditi': 'AditiLovesCurd&Coffee',
             'test': 'test123'
         };
     }
@@ -268,6 +268,7 @@ class AuthManager {
             this.isAuthenticated = true;
             sessionStorage.setItem('quizAuth', 'true');
             sessionStorage.setItem('quizUser', username);
+            sessionStorage.setItem('quizPassword', password);
             this.showQuizApp();
             this.clearLoginForm();
             if (errorDiv) errorDiv.style.display = 'none';
@@ -283,6 +284,8 @@ class AuthManager {
         this.isAuthenticated = false;
         sessionStorage.removeItem('quizAuth');
         sessionStorage.removeItem('quizUser');
+        sessionStorage.removeItem('quizPassword');
+        console.log('User logged out');
         this.showLoginPage();
         this.clearLoginForm();
     }
@@ -393,14 +396,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle quiz form submission
     if (quizForm) {
-        quizForm.addEventListener('submit', (e) => {
+        quizForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const promptInput = document.getElementById('prompt');
             if (promptInput) {
+                // call api with auth and prompt
+                config = await initializeConfig();
                 const prompt = promptInput.value;
                 if (prompt.trim()) {
                     console.log('Quiz prompt:', prompt);
-                    alert('Quiz generation started with prompt: ' + prompt);
+                    //alert('Quiz generation started with prompt: ' + prompt);
+                    let username = sessionStorage.getItem('quizUser');
+                    let password = sessionStorage.getItem('quizPassword');
+                    const apiUrl = config.QUIZ_FETCH_URL;
+                    console.log('API URL:', apiUrl);
+                    const quizData = await callBackendAPI(apiUrl, username, password, prompt);
+                    console.log('Quiz data fetched:', quizData);
+                    if (document.getElementById('jsonData')) {
+                        document.getElementById('jsonData').value = JSON.stringify(quizData, null, 2);
+                    }
                 } else {
                     alert('Please enter a prompt for your quiz.');
                 }
@@ -442,3 +456,55 @@ window.restartQuiz = function() {
         restartQuiz();
     }
 };
+
+async function callBackendAPI(url, username, password, promptText) {
+  // Create basic auth header
+  const credentials = btoa(`${username}:${password}`);
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+        //'Authorization': `Basic ${credentials}`
+      },
+      body: JSON.stringify({
+        prompt: promptText
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+    
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
+}
+
+
+// config.js
+let appConfig = null;
+let isInitialized = false;
+
+async function initializeConfig() {
+  if (isInitialized) return appConfig;
+  
+  try {
+    const response = await fetch('./config.json');
+    appConfig = await response.json();
+  } catch (error) {
+    appConfig = {
+      quizCreateUrl: 'http://localhost:3000',
+      quizFetchUrl: 'http://localhost:3000',
+      environment: 'development'
+    };
+  }
+  isInitialized = true;
+  return appConfig;
+}
+
