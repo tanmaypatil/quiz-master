@@ -6,6 +6,8 @@ let selectedOption = -1;
 let answered = false;
 let userAnswers = [];
 
+
+
 const API_ENDPOINT = 'https://your-api-gateway-url.amazonaws.com/prod/save-results';
 
 function loadQuizInternal() {
@@ -150,38 +152,35 @@ async function showFinalResults() {
     else if (percentage >= 50) message += '<br>Good effort! 👍';
     else message += '<br>Keep practicing! 💪';
 
-    try {
-        await saveQuizResults();
-        message += '<br><small>✅ Results saved to database</small>';
-    } catch (error) {
-        console.error('Failed to save results:', error);
-        message += '<br><small>⚠️ Failed to save results</small>';
-    }
+    
 
     document.getElementById('results').innerHTML = message;
     document.getElementById('results').style.display = 'block';
     document.getElementById('nextBtn').style.display = 'none';
     document.getElementById('restartBtn').style.display = 'inline-block';
+    document.getElementById('saveBtn').style.display = 'inline-block';
 }
 
-async function saveQuizResults() {
-    const userId = prompt("Enter your user ID (optional):") || 'anonymous';
+async function saveQuizInternal() {
+    console.log('Saving quiz ...');
+    const quiz_name = sessionStorage.getItem('quizName') || '';
+    const prompt = document.getElementById('prompt').value || '';
+    let config = await initializeConfig();
+    let apiUrl = config.QUIZ_CREATE_URL;
 
-    const results = {
-        userId: userId,
-        score: score,
-        total: quizData.length,
-        answers: userAnswers,
-        quizData: quizData,
-        timestamp: new Date().toISOString()
+    const quiz = {
+        quiz_name : quiz_name || 'Untitled Quiz',
+        prompt : prompt,
+        quizData: quizData
     };
 
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${btoa(`${sessionStorage.getItem('quizUser')}:${sessionStorage.getItem('quizPassword')}`)}`
         },
-        body: JSON.stringify(results)
+        body: JSON.stringify(quiz)
     });
 
     if (!response.ok) {
@@ -202,9 +201,20 @@ function restartQuizInternal() {
 
     document.getElementById('results').style.display = 'none';
     document.getElementById('restartBtn').style.display = 'none';
+    document.getElementById('saveBtn').style.display = 'none';
 
     updateScore();
     showQuestion();
+}
+
+function saveQuizInternal() {
+    if (quizData.length === 0) {
+        console.log('No quiz data available to save.');
+        return;
+    }
+
+    // Proceed with saving the quiz data
+    console.log('Saving quiz data...');
 }
 
 async function loadJson() {
@@ -415,6 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const prompt = promptInput.value;
                 if (prompt.trim()) {
                     console.log('Quiz prompt:', prompt);
+                    sessionStorage.setItem('quizPrompt', prompt);
                     //alert('Quiz generation started with prompt: ' + prompt);
                     let username = sessionStorage.getItem('quizUser');
                     let password = sessionStorage.getItem('quizPassword');
@@ -447,7 +458,8 @@ const originalFunctions = {
     loadQuiz: window.loadQuiz,
     submitAnswer: window.submitAnswer,
     nextQuestion: window.nextQuestion,
-    restartQuiz: window.restartQuiz
+    restartQuiz: window.restartQuiz,
+    saveQuiz : window.saveQuiz
 };
 
 window.loadQuiz = function() {
@@ -473,6 +485,18 @@ window.nextQuestion = function() {
 window.restartQuiz = function() {
     if (authManager && authManager.checkAuth()) {
         restartQuizInternal();
+    }
+};
+
+window.restartQuiz = function() {
+    if (authManager && authManager.checkAuth()) {
+        restartQuizInternal();
+    }
+};
+
+window.saveQuiz = function() {
+    if (authManager && authManager.checkAuth()) {
+        saveQuizInternal();
     }
 };
 
