@@ -9,9 +9,18 @@ let userAnswers = [];
 const API_ENDPOINT = 'https://your-api-gateway-url.amazonaws.com/prod/save-results';
 
 function loadQuizInternal() {
+    console.log('inside loadQuizInternal  ');
     try {
         const jsonText = document.getElementById('jsonData').value;
-        quizData = JSON.parse(jsonText);
+        if (jsonText) {
+            quizData = JSON.parse(jsonText);
+        }
+        else {
+            alert('Please provide valid JSON data in the textarea');
+            return;
+        }
+
+        console.log('inside loadQuizInternal  '+quizData.length);
 
         if (!Array.isArray(quizData) || quizData.length === 0) {
             alert('Please provide a valid array of questions');
@@ -24,9 +33,10 @@ function loadQuizInternal() {
                 return;
             }
         }
-
+        document.getElementById('quizForm').style.display = 'none';
         document.getElementById('jsonInput').style.display = 'none';
         document.getElementById('quizContainer').style.display = 'block';
+        document.getElementById('quizQuestions').style.display = 'block';
 
         currentQuestion = 0;
         score = 0;
@@ -183,7 +193,7 @@ async function saveQuizResults() {
     return data;
 }
 
-function restartQuiz() {
+function restartQuizInternal() {
     currentQuestion = 0;
     score = 0;
     selectedOption = -1;
@@ -412,9 +422,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('API URL:', apiUrl);
                     const quizData = await callBackendAPI(apiUrl, username, password, prompt);
                     console.log('Quiz data fetched:', quizData);
-                    if (document.getElementById('jsonData')) {
-                        document.getElementById('jsonData').value = JSON.stringify(quizData, null, 2);
+                    if (quizData && quizData["data"]) {
+                        if (document.getElementById('jsonData')) {
+                            console.log('quizData set to html field - jsonData');
+                            document.getElementById('jsonData').value = JSON.stringify(quizData["data"], null, 2);
+                        }
+                        
+                        loadQuizInternal();
                     }
+                    else {
+                        alert('Failed to fetch quiz data. Please try again.');
+                    }
+                    
                 } else {
                     alert('Please enter a prompt for your quiz.');
                 }
@@ -453,7 +472,7 @@ window.nextQuestion = function() {
 
 window.restartQuiz = function() {
     if (authManager && authManager.checkAuth()) {
-        restartQuiz();
+        restartQuizInternal();
     }
 };
 
